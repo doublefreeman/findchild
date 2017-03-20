@@ -68,16 +68,15 @@ while True:
 		# 去除紧贴图像的边框
 		if x == 0 or y == 0:
 			continue
-			
+
 		if x + w >= width or y + h >= height:
-			continue			
-			
+			continue
+
 		cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 		text = "Occupied"
 	
-		# draw the text and timestamp on the frame
+	# draw the text and timestamp on the frame
 	# 在当前帧上写文字以及时间戳
-
 	cv2.putText(frame, "Room Status: {}".format(text), (10, 20),
 		cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 	cv2.putText(frame, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"),
