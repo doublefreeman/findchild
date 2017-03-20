@@ -28,7 +28,7 @@ firstFrame = None
 
 # 初始化视频流的上一帧
 lastFrame = None
-
+framecount = 0
 # 遍历视频的每一帧
 while True:
 	# 获取当前帧并初始化occupied/unoccupied文本
@@ -62,22 +62,19 @@ while True:
 	thresh = cv2.dilate(thresh, None, iterations=2)
 	(_,cnts,hierarchy) = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 	
-	# 计算当前帧和上一帧的不同
-	frameDeltalast = cv2.absdiff(lastFrame, gray)
-	threshlast = cv2.threshold(frameDeltalast, 25, 255, cv2.THRESH_BINARY)[1]
+	if framecount == 0:
+		# 计算当前帧和上一帧的不同
+		frameDeltalast = cv2.absdiff(lastFrame, gray)
+		threshlast = cv2.threshold(frameDeltalast, 25, 255, cv2.THRESH_BINARY)[1]
  
-	# 扩展阀值图像填充孔洞，然后找到阀值图像上的轮廓
-	threshlast = cv2.dilate(threshlast, None, iterations=2)
-	(_,cntslast,hierarchylast) = cv2.findContours(threshlast.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-	lastFrame = gray
+		# 扩展阀值图像填充孔洞，然后找到阀值图像上的轮廓
+		threshlast = cv2.dilate(threshlast, None, iterations=2)
+		(_,cntslast,hierarchylast) = cv2.findContours(threshlast.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+		lastFrame = gray
 	
 	movecounter = 0
 		# 遍历轮廓
 	for d in cntslast:
-		# if the contour is too small, ignore it
-		if cv2.contourArea(d) < args["min_area"]:
-			continue
-
 		movecounter = movecounter + 1
 			
 	# 遍历轮廓
@@ -85,7 +82,6 @@ while True:
 		# if the contour is too small, ignore it
 		if cv2.contourArea(c) < args["min_area"]:
 			continue
-		
 		
 		# compute the bounding box for the contour, draw it on the frame,
 		# and update the text
@@ -126,14 +122,17 @@ while True:
  
 	#显示当前帧并记录用户是否按下按键
 	cv2.imshow("Security Feed", frame)
-	#cv2.imshow("Thresh", threshlast)
-	#cv2.imshow("Frame Delta", frameDeltalast)
+	cv2.imshow("Thresh", threshlast)
+	cv2.imshow("Frame Delta", frameDeltalast)
 	key = cv2.waitKey(1)
 	
 	# 如果q键被按下，跳出循环
 	if key == ord("q"):
 		break
  
+	framecount =  framecount + 1
+	if framecount == 9:
+		framecount = 0
 # 清理摄像机资源并关闭打开的窗口
 camera.release()
 cv2.destroyAllWindows()
