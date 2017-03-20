@@ -5,7 +5,9 @@ import datetime
 import imutils
 import time
 import cv2
- 
+
+nomovecount = 0
+
 # 创建参数解析器并解析参数
 ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video", help="path to the video file")
@@ -21,8 +23,11 @@ if args.get("video", None) is None:
 else:
 	camera = cv2.VideoCapture(args["video"])
  
-# 初始化视频流的第一帧
+# 初始化视频流的背景帧
 firstFrame = None
+
+# 初始化视频流的上一帧
+lastFrame = None
 
 # 遍历视频的每一帧
 while True:
@@ -45,6 +50,10 @@ while True:
 		firstFrame = gray
 		continue
 		
+	if lastFrame is None:
+		lastFrame = gray
+		continue
+		
 	# 计算当前帧和第一帧的不同
 	frameDelta = cv2.absdiff(firstFrame, gray)
 	thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
@@ -52,13 +61,32 @@ while True:
 	# 扩展阀值图像填充孔洞，然后找到阀值图像上的轮廓
 	thresh = cv2.dilate(thresh, None, iterations=2)
 	(_,cnts,hierarchy) = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+	
+	# 计算当前帧和上一帧的不同
+	frameDeltalast = cv2.absdiff(lastFrame, gray)
+	threshlast = cv2.threshold(frameDeltalast, 25, 255, cv2.THRESH_BINARY)[1]
  
+	# 扩展阀值图像填充孔洞，然后找到阀值图像上的轮廓
+	threshlast = cv2.dilate(threshlast, None, iterations=2)
+	(_,cntslast,hierarchylast) = cv2.findContours(threshlast.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+	lastFrame = gray
+	
+	movecounter = 0
+		# 遍历轮廓
+	for d in cntslast:
+		# if the contour is too small, ignore it
+		if cv2.contourArea(d) < args["min_area"]:
+			continue
+
+		movecounter = movecounter + 1
+			
 	# 遍历轮廓
 	for c in cnts:
 		# if the contour is too small, ignore it
 		if cv2.contourArea(c) < args["min_area"]:
 			continue
- 
+		
+		
 		# compute the bounding box for the contour, draw it on the frame,
 		# and update the text
 		# 计算轮廓的边界框，在当前帧中画出该框
@@ -81,13 +109,27 @@ while True:
 		cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 	cv2.putText(frame, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"),
 		(10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+
+	if movecounter == 0:
+		nomovecount = nomovecount + 1
+		if nomovecount == 3600:
+			firstFrame = gray
+			nomovecount = 0
+	else :
+		nomovecount = 0
 		
+	cv2.putText(frame, "movecount = "+str(movecounter), (10, 50),
+			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+	cv2.putText(frame, "nomovecount = "+str(nomovecount), (10, 100),
+		cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+ 
+ 
 	#显示当前帧并记录用户是否按下按键
 	cv2.imshow("Security Feed", frame)
-	#cv2.imshow("Thresh", thresh)
-	#cv2.imshow("Frame Delta", frameDelta)
+	#cv2.imshow("Thresh", threshlast)
+	#cv2.imshow("Frame Delta", frameDeltalast)
 	key = cv2.waitKey(1)
- 
+	
 	# 如果q键被按下，跳出循环
 	if key == ord("q"):
 		break
