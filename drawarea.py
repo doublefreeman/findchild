@@ -7,6 +7,7 @@ importlib.reload(sys)
 import cv2
 import time
 import imutils
+area = []
 
 # 当鼠标按下时设置 要进行绘画
 drawing = False
@@ -18,7 +19,7 @@ globalx, globaly = -1,-1
 
 # 创建回调函数，用于设置滚动条的位置
 def drawcircle(event,x,y,flags,param):
-	global globalx,globaly,drawing,GetArea,img,order
+	global globalx,globaly,drawing,GetArea,img,order,area
 	
 	if not GetArea:
 		return
@@ -34,6 +35,7 @@ def drawcircle(event,x,y,flags,param):
 	if event == cv2.EVENT_LBUTTONUP:
 		if drawing == True:
 			img = order.copy()
+			area.append(((min(globalx,x),min(globaly,y)),(max(globalx,x),max(globaly,y))))
 			cv2.rectangle(img,(globalx,globaly),(x,y),(0, 255, 0),2)
 			order = img.copy()
 			drawing = False
@@ -55,6 +57,9 @@ while True:
 	key = cv2.waitKey(10)
 	if key == ord('o'):
 		GetArea = False
+		for((a,b),(c,d)) in area:
+			print((a,b,c,d))
+		
 	if key == ord("q"):
 		break
 		
