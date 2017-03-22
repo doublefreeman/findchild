@@ -35,6 +35,7 @@ def drawcircle(event,x,y,flags,param):
 		if drawing == True:
 			img = order.copy()
 			cv2.rectangle(img,(globalx,globaly),(x,y),(0, 255, 0),2)
+			order = img.copy()
 			drawing = False
 			print((globalx,globaly,x,y))	
 
