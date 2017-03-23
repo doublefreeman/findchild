@@ -11,19 +11,20 @@ import time
 import cv2
 
 
-samepercent = 0.2
+samepercent = 0.4
 
 def detect(image):
+	'''
 	orig = image.copy()
-
+	'''
 	# detect people in the image
 	(rects, weights) = hog.detectMultiScale(image, winStride=(4, 4),
 		padding=(8, 8), scale=1.05)
-
+	'''
 	# draw the original bounding boxes
 	for (x, y, w, h) in rects:
 		cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
-
+	'''
 	# apply non-maxima suppression to the bounding boxes using a
 	# fairly large overlap threshold to try to maintain overlapping
 	# boxes that are still people
@@ -31,14 +32,15 @@ def detect(image):
 	pick = non_max_suppression(rects, probs=None, overlapThresh=0.65)
 	return pick
 
-def inSamePercent(Ax, Bx):
-	if((Ax * (1 - samepercent)) < Bx) and ((Ax * (1 + samepercent)) > Bx):
-		return True
-	else:
-		return False
+def inSamePercent(Ax1, Ax2, Bx1, Bx2):
+	if Ax1 - ((Ax2 - Ax1)*samepercent) < Bx1 and Ax1 + ((Ax2 - Ax1)*samepercent) > Bx1:
+		if Ax2 - ((Ax2 - Ax1)*samepercent) < Bx2 and Ax2 + ((Ax2 - Ax1)*samepercent) > Bx2:
+			return True
+	
+	return False
 	
 def isSame(xA1,yA1,xA2,yA2,xB1,yB1,xB2,yB2):
-	if(inSamePercent(xA1, xB1) and inSamePercent(yA1, yB1) and inSamePercent(xA2, xB2) and inSamePercent(yA1, yB2)):
+	if inSamePercent(xA1, xA2, xB1, xB2) and inSamePercent(yA1, yA2, yB1, yB2):
 		return True
 	else:
 		return False
@@ -162,7 +164,7 @@ while True:
 		nomovecount = 0
 		
 	cv2.putText(frame, "movecount = "+str(movecounter), (10, 50),
-			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+		cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 	cv2.putText(frame, "nomovecount = "+str(nomovecount), (10, 100),
 		cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
  
