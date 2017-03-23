@@ -1,12 +1,53 @@
 # coding=gbk
 # 导入必要的软件包
+from __future__ import print_function
+from imutils.object_detection import non_max_suppression
+from imutils import paths
+import numpy as np
 import argparse
 import datetime
 import imutils
 import time
 import cv2
 
+
+samepercent = 0.2
+
+def detect(image):
+	orig = image.copy()
+
+	# detect people in the image
+	(rects, weights) = hog.detectMultiScale(image, winStride=(4, 4),
+		padding=(8, 8), scale=1.05)
+
+	# draw the original bounding boxes
+	for (x, y, w, h) in rects:
+		cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+	# apply non-maxima suppression to the bounding boxes using a
+	# fairly large overlap threshold to try to maintain overlapping
+	# boxes that are still people
+	rects = np.array([[x, y, x + w, y + h] for (x, y, w, h) in rects])
+	pick = non_max_suppression(rects, probs=None, overlapThresh=0.65)
+	return pick
+
+def inSamePercent(Ax, Bx):
+	if((Ax * (1 - samepercent)) < Bx) and ((Ax * (1 + samepercent)) > Bx):
+		return True
+	else:
+		return False
+	
+def isSame(xA1,yA1,xA2,yA2,xB1,yB1,xB2,yB2):
+	if(inSamePercent(xA1, xB1) and inSamePercent(yA1, yB1) and inSamePercent(xA2, xB2) and inSamePercent(yA1, yB2)):
+		return True
+	else:
+		return False
+
 nomovecount = 0
+
+# initialize the HOG descriptor/person detector
+hog = cv2.HOGDescriptor()
+hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
 # 创建参数解析器并解析参数
 ap = argparse.ArgumentParser()
@@ -41,6 +82,7 @@ while True:
  
 	# 调整该帧的大小，转换为灰阶图像并且对其进行高斯模糊
 	frame = imutils.resize(frame, width=500)
+	framedetect = frame.copy()
 	gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 	gray = cv2.GaussianBlur(gray, (21, 21), 0)
 	height, width = frame.shape[:2]
@@ -73,11 +115,13 @@ while True:
 		lastFrame = gray
 	
 	movecounter = 0
-		# 遍历轮廓
+
 	for d in cntslast:
 		movecounter = movecounter + 1
 			
 	# 遍历轮廓
+	detectcnts = detect(framedetect)
+	
 	for c in cnts:
 		# if the contour is too small, ignore it
 		if cv2.contourArea(c) < args["min_area"]:
@@ -95,9 +139,12 @@ while True:
 
 		if x + w >= width or y + h >= height:
 			continue
-
-		cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-		text = "Occupied"
+			
+		for (xA, yA, xB, yB) in detectcnts:
+			if isSame(x, y, x + w, y + h, xA, yA, xB, yB,):
+				cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+				text = "Occupied"
+	
 	
 	# draw the text and timestamp on the frame
 	# 在当前帧上写文字以及时间戳
