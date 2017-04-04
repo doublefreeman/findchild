@@ -59,7 +59,7 @@ args = vars(ap.parse_args())
 
 # 如果video参数为None，那么我们从摄像头读取数据
 if args.get("video", None) is None:
-	camera = cv2.VideoCapture(0)
+	camera = cv2.VideoCapture("rtsp://root:root@10.0.0.110:554/cam1/mpeg4")
 	time.sleep(0.25)
  
 # 否则我们读取一个视频文件
